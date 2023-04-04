@@ -1,0 +1,206 @@
+
+library(gutenbergr)# dataset of public domain literature
+library(tidytext)
+library(rlang)
+library(tidyverse)  # quality of life improvements.  tidyverse has a lot of packages!   
+library(writexl) # export excel documents
+library(readxl) # import excel documents 
+library(ggwordcloud) # create word clouds
+library(rvest) # web scraping tool
+
+
+# group_by() groups data by selected columns
+# summarise() reduces multiple values down to a single summary.
+# mutate() adds new variables that are functions of existing variables
+# select() picks variables based on their names.
+# filter() picks cases based on their values.
+# arrange() changes the ordering of the rows.
+# separate() splits data by specified character
+# 
+# %>%  chains commands in the same dataset together  shortcut: shift ctrl m
+
+
+
+####### LESSON 1:  Analyzing the Top 100 Words in Literature ####### 
+
+
+
+Curve.Exports <-"C:/Users/pbz66348/OneDrive - Commonwealth of Virginia/Documents/Epi Curve Export"
+
+
+# Objective: Find the top 100 unique words in The Odyssey
+
+
+# create a dataset of all the gutenberg text
+gutenberg_metadata<- tibble(gutenberg_metadata)
+
+
+# view the contents of the gutenberg data
+str(gutenberg_metadata)
+
+
+# find books containing the word "Odyssey" in the title 
+str_detect(gutenberg_metadata,"Odyssey")
+
+
+# filter
+Odyssey_books<-gutenberg_metadata %>% 
+  # filter for titles that contained the word "Odyssey"
+  filter(str_detect(title,"Odyssey"))
+
+print(Odyssey_books)
+
+
+# Download "The Odyssey Rendered into English prose for the use of those who cannot read the original"   ID 1727
+gut_id<-1727
+
+
+
+book_info<-gutenberg_metadata %>% 
+  filter(gutenberg_id ==gut_id)
+
+# store title of book
+book_title<- book_info$title
+# store author of book 
+book_author<- book_info$author
+
+
+# download book
+book<-gutenberg_download(gut_id)
+
+
+
+  
+
+# read the book
+book$text
+
+
+# Get a count of all the words used in The Odyssey
+book_words<-book %>% 
+  # filter out blank cells 
+  filter(text!="") %>% 
+  # only keep the text column
+  select(text) %>% 
+  # extract single words from each line
+  unnest_tokens(word,text) %>% 
+  # get a list of each word used 
+  group_by(word) %>% 
+  # get a total count of each word
+  summarize(count=n()) %>% 
+  # arrange in descending order 
+  arrange(desc(count))
+
+
+# total word count
+sum(book_words$count)
+
+
+
+# Stop words:  The words which are generally filtered out before processing a natural language
+stop_words<-tibble(stop_words) %>% 
+  # trim white space and capitalize each word
+  mutate(word=trimws(toupper(word)))
+
+# take a look at the stop words 
+print(stop_words$word)
+
+
+
+# Get a count of all the unique words used in The Odyssey
+book_unique_words<-book_words %>% 
+  # trim white space and capitalize each word
+  mutate(word=trimws(toupper(word))) %>% 
+  # exclude all the stop words
+  anti_join(stop_words)
+
+
+
+
+
+
+
+
+# create custom title names based on selected book
+plot_title<-paste("Top 100 Unique Words in",book_title)
+plot_author<-paste("By ",book_author)
+
+
+# plot the data 
+book_unique_words %>%
+  # pick the top 100 words  AKA the first 100 rows
+  slice(1:100) %>% 
+  # beginning of plot 
+  ggplot(aes(label = word, size=count,color=count)) +
+    # create a word cloud
+    geom_text_wordcloud()+
+    theme_minimal()+ 
+    # set max size of a word
+    scale_size_area(max_size = 20)+
+    # create a color scale
+    scale_color_gradient(low = "grey", high = "red")+
+    # custom title 
+    labs(title=plot_title,
+         subtitle=plot_author)+
+    # make the title red and have it in the center of the plot
+    theme(plot.title = element_text(color = "red",hjust = 0.5, size= 23 ),
+          plot.subtitle = element_text(color = "red",hjust = 0.5, size= 13))
+ggsave(path =Curve.Exports,height=12,width=12, filename ="Book_unique_words.png")
+
+
+
+
+
+
+
+
+####### Lesson 2: Creating an Index of Public Schools in VA ####### 
+
+# get a list of VA public schools from a URL 
+schools<-read_html("https://www.va-doeapp.com/PublicSchoolsAlphabetical.aspx?w=true")
+
+# get a list of all the tables present on the webpage
+schools.table<-schools %>% html_table(fill=TRUE)
+
+
+
+# find the table with the desired data
+school.list<-schools.table[[1]] %>% 
+  # select only the first four columns
+  select(c(1:4)) %>% 
+  # rename the columns 
+  rename(School=X1,
+         Principal=X2,
+         Grades=X3,
+         Division.Schools=X4) %>% 
+  # filter out blank school names 
+  filter(School!="",
+         # filter out non-school names 
+         !str_detect(School,"- -")) %>% 
+  # separate the school name and address by the word "Street Address:"
+  separate(School,c("School","Address"),"Street address:") %>% 
+  
+  
+  mutate(
+
+    # extract phone   pattern: 3 numbers - 3 numbers - 4 numbers
+    Phone=str_extract(Address,"[0-9]{3}-[0-9]{3}-[0-9]{4}"),
+    
+    # replace phone   pattern: 3 numbers - 3 numbers - 4 numbers   
+    Address=str_replace(Address,"[0-9]{3}-[0-9]{3}-[0-9]{4}",""),
+    
+    # extract zip     pattern: 5 numbers - 4 numbers  OR  5 numbers at the end of the string  
+    Zip=str_extract(Address,"([0-9]{5}\\-[0-9]{4})$|([0-9]{5}$)"),
+    
+    # replace zip     pattern: 5 numbers - 4 numbers  OR  5 numbers at the end of the string  
+    Address=str_replace(Address,"([0-9]{5}\\-[0-9]{4})$|([0-9]{5}$)",""),
+    
+    # replace . with ""
+    Address=str_replace_all(Address,"\\.",""), 
+    
+    # Find strings with containing words with a lowercase then letters then put a comma right before the second 
+    
+    Address=gsub("([a-z])([A-Z])","\\1\\,\\2", Address))%>% 
+  
+  # separate the address into Address; City; and State by the comma 
+  separate(Address,c("Address","City","State"),",")
