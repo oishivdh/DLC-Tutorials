@@ -37,6 +37,9 @@ library(wesanderson)  # custom color palettes
 
 
 
+####### LESSON 1: 2x2 Tables ####### 
+
+
 # upload a copy of your original dataset
 
 foodborne_data <- read_excel("~/Test/foodborne_data.xlsx")
@@ -171,7 +174,7 @@ for (food in food_col){  # start of loop
 
 
 
-#### COVID CASES #### 
+####### LESSON 2:  Creating Epi Curves ####### 
 
 
 # create a reset command to reset the dataset.
