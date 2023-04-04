@@ -203,4 +203,6 @@ school.list<-schools.table[[1]] %>%
     Address=gsub("([a-z])([A-Z])","\\1\\,\\2", Address))%>% 
   
   # separate the address into Address; City; and State by the comma 
-  separate(Address,c("Address","City","State"),",")
+  separate(Address,c("Address","City","State"),",") %>% 
+  # Re order columns
+  select(School,Address,City,State,Zip,Phone,Principal,Grades,Division.Schools)
