@@ -68,7 +68,7 @@ Titanic_data<-Titanic_master
 
 
 
-####### LOOKING AT THE DATA #######
+####### LESSON 1:  LOOKING AT THE DATA ####### 
 
 # Look at column names + characteristics 
 str(Titanic_data)
@@ -78,7 +78,7 @@ names(Titanic_data)
 
 
 
-####### COLUMN CREATION #######
+####### LESSON 2: COLUMN CREATION #######
 
 # Manipulating different columns
 
@@ -99,7 +99,7 @@ Titanic_data<-Titanic_master
 
 
 
-####### JOINING DATASETS #######
+####### LESSON 3: JOINING DATASETS #######
 
 
 # Find compatible columns
@@ -146,7 +146,7 @@ ex.anti<-Titanic_dinner %>%
 
 
 
-##### BINDING + JOINING #####
+##### LESSON 4: BINDING + JOINING #####
 
 
 # This dataset contains both old and new records!
@@ -174,7 +174,7 @@ Titanic_data_update<-Titanic_data %>%
 
 
 
-####### SUMMARIZING DATA + GRAPHING #######
+####### LESSON 5: SUMMARIZING DATA + GRAPHING #######
 
 
 # Quickly summarize data into tables
