@@ -25,9 +25,6 @@ library(rvest) # web scraping tool
 
 
 
-Curve.Exports <-"C:/Users/pbz66348/OneDrive - Commonwealth of Virginia/Documents/Epi Curve Export"
-
-
 # Objective: Find the top 100 unique words in The Odyssey
 
 
@@ -145,7 +142,6 @@ book_unique_words %>%
     # make the title red and have it in the center of the plot
     theme(plot.title = element_text(color = "red",hjust = 0.5, size= 23 ),
           plot.subtitle = element_text(color = "red",hjust = 0.5, size= 13))
-ggsave(path =Curve.Exports,height=12,width=12, filename ="Book_unique_words.png")
 
 
 
