@@ -1,0 +1,342 @@
+
+# Objectives: understand chains and dplyr syntax
+
+# import packages that you'll need
+library(tidyverse)  # quality of life improvements.  tidyverse has a lot of packages!   
+library(writexl) # export excel documents
+library(readxl) # import excel documents 
+library(wesanderson) # custom color palettes 
+
+
+
+# group_by() groups data by selected columns
+# summarise() reduces multiple values down to a single summary.
+# mutate() adds new variables that are functions of existing variables
+# select() picks variables based on their names.
+# filter() picks cases based on their values.
+# arrange() changes the ordering of the rows.
+# separate() splits data by specified character
+# 
+# %>%  chains commands in the same dataset together  shortcut: shift ctrl m
+
+
+
+
+
+
+####### TITANIC KEY ####### 
+
+# survival:	Survival	0 = No, 1 = Yes
+# pclass:	Ticket class	1 = 1st, 2 = 2nd, 3 = 3rd
+# sex:	Sex	
+# Age:	Age in years	
+# sibsp:	# of siblings / spouses aboard the Titanic	
+# parch:	# of parents / children aboard the Titanic	
+# ticket:	Ticket number	
+# fare:	Passenger fare	
+# cabin;	Cabin number	
+# embarked:	Port of Embarkation	C = Cherbourg, Q = Queenstown, S = Southampton
+
+
+# @@@ DATASETS @@@
+# Titanic_master: 891 passenger records
+# Titanic_dinner: list of 285 dinner guests.  Mix of records already in Titanic_master and new records
+# Titanic_newcomers: list of 578 records.  Mix of records already in Titanic_master and new records
+
+
+
+
+
+
+
+# Import Master Sheet from excel doc
+Titanic_master <- read_excel("~/Test/Titanic_data.xlsx", sheet = "Master")
+
+# Import Dinner_list Sheet from excel doc
+Titanic_dinner <- read_excel("~/Test/Titanic_data.xlsx", sheet = "Dinner_list")
+
+# Import New_list from excel doc
+Titanic_newcomers <- read_excel("~/Test/Titanic_data.xlsx", sheet = "New_list")
+
+
+
+
+
+# Create a copy of the original dataset
+Titanic_data<-Titanic_master
+
+
+
+
+####### LOOKING AT THE DATA #######
+
+# Look at column names + characteristics 
+str(Titanic_data)
+
+# Look at Only column names
+names(Titanic_data)
+
+
+
+####### COLUMN CREATION #######
+
+# Manipulating different columns
+
+# Concatenating example: the classic way
+
+Titanic_data$message<-paste(Titanic_data$Name,"was from passenger class",Titanic_data$Pclass,sep =" ")
+
+
+
+# Concatenating example: the dplyr way
+# Using chains means you just have to use column names 
+Titanic_data<-Titanic_data %>% 
+  mutate(message2=paste(Name,"was from passenger class", Pclass,sep=" "))
+
+
+# Reset the dataset
+Titanic_data<-Titanic_master
+
+
+
+####### JOINING DATASETS #######
+
+
+# Find compatible columns
+str(Titanic_data)
+str(Titanic_dinner)
+
+
+# Passenger ID goes by two different names!
+# make sure the data is compatible by making them both character variables
+
+Titanic_dinner<-Titanic_dinner %>% 
+  # Overwrite the ID column and make it a character variable
+  mutate(ID=as.character(ID))
+
+
+Titanic_data<-Titanic_data %>% 
+  # Overwrite the ID column and make it a character variable
+  mutate(PassengerId=as.character(PassengerId))
+
+
+# JOIN EXAMPLE:  Titanic_dinner = Left       Titanic_data = Right 
+
+
+# Left join: joins datasets by colunm values on "left" dataset
+
+ex.left<-Titanic_dinner %>%
+  left_join(Titanic_data, by=c("ID"="PassengerId"))
+
+# Right join: joins datasets by colunm values on "right" dataset
+ex.right<-Titanic_dinner %>% 
+  right_join(Titanic_data, by=c("ID"="PassengerId"))
+
+# Inner join: joins datasets by only shard column values on both datasets
+ex.inner<-Titanic_dinner %>% 
+  inner_join(Titanic_data, by=c("ID"="PassengerId"))
+
+# Full join: completely joins datasets by column values on both datasets
+ex.full<-Titanic_dinner %>% 
+  full_join(Titanic_data, by=c("ID"="PassengerId"))
+
+# Anti join: shows data not present in the second dataset
+ex.anti<-Titanic_dinner %>%
+  anti_join(Titanic_data, by=c("ID"="PassengerId"))
+
+
+
+##### BINDING + JOINING #####
+
+
+# This dataset contains both old and new records!
+# Let's consolidate the data into one dataset
+# How do we avoid duplicates?
+
+Newcomers<-Titanic_newcomers
+
+# find compatible columns
+str(Newcomers)
+str(Titanic_data)
+
+# Create a dataset of only records that are missing from Titanic_data
+Newcomers<-Titanic_newcomers %>% 
+  mutate(PassengerId=as.character(PassengerId)) %>% 
+  # anti join to master dataset to only find records that are missing 
+  anti_join(Titanic_data, by=c("PassengerId")) 
+
+
+# update the master dataset with records that were missing 
+Titanic_data_update<-Titanic_data %>% 
+  # binding rows adds the new data at the BOTTOM
+  bind_rows(Newcomers)
+
+
+
+
+####### SUMMARIZING DATA + GRAPHING #######
+
+
+# Quickly summarize data into tables
+
+# What was the relationship between Pclass and Survival?
+
+Titanic_data_pclass<-Titanic_data%>% 
+  # choose specific variables to summarize
+  group_by(Pclass,Survived) %>% 
+  # get a total count
+  summarize(Total=n()) %>% 
+  # arrange the data by Pclass 
+  arrange(Pclass)
+
+print(Titanic_data_pclass)
+
+
+
+
+# plot directly from a dataset
+Titanic_data %>%
+  mutate(Survived=as.character(Survived)) %>% 
+  # aes: select your x and y axis.  optional: select the variable to fill the bars
+  # x = Pclass   y = total count     if the y axis isn't picked it will do total count by default
+  ggplot(aes(Pclass,fill=Survived))+
+  geom_bar()+
+  ggtitle("Survival Outcomes of Titanic Passengers by Passenger Class")
+
+
+
+
+# What was the relationship between Sex and Survival?
+
+Titanic_data_sex<-Titanic_data%>% 
+  # choose specific variables to summarize
+  group_by(Sex,Survived) %>% 
+  # get a total count
+  summarize(Total=n())
+
+print(Titanic_data_sex)
+
+
+# plot from a summary table 
+Titanic_data_sex %>%
+  mutate(Survived=as.character(Survived)) %>% 
+  # x = Sex   y = Total
+  ggplot(aes(Sex,Total,fill=Survived ))+
+  # when graphing from a summary table use stat = "identity"
+  geom_bar(stat="identity",color="black")+
+  # title of plot
+  ggtitle("Survival Outcomes of Titanic Passengers by Sex")
+  
+
+
+
+
+# Plotting the relationships of multiple variables
+
+
+
+# what was survival like for people in each passenger class by sex?
+Titanic_data_class_sex<-Titanic_data %>% 
+  # look at Pcalss, sex, and survival
+  group_by(Pclass,Sex,Survived) %>% 
+  # get a total count
+  summarize(Total=n())  
+
+print(Titanic_data_class_sex)
+
+
+# plot from a summary table 
+Titanic_data_class_sex %>%
+  mutate(Survived=as.character(Survived)) %>% 
+  # x = Pclass   y = Total
+  ggplot(aes(Pclass,Total,fill=Survived ))+
+  # when graphjng from a summary table use stat = "identity"
+  geom_bar(stat="identity",color="black")+
+  # split graphs by sex
+  facet_grid(.~Sex)+
+  # title of plot
+  ggtitle("Survival Outcomes of Titanic Passengers by Passenger Class and Sex")
+
+
+
+
+
+# Advanced Filters + Summary 
+
+
+# what was survival like for people under the age of 18 in each class?
+Titanic_data_minors<-Titanic_data %>% 
+  # filter for only people under the age of 18
+  filter(Age<18) %>% 
+  # look at Pcalss, sex, and survival
+  group_by(Pclass,Sex,Survived) %>% 
+  # get a total count
+  summarize(Total=n())  
+
+print(Titanic_data_minors)
+
+
+# plot from a summary table 
+Titanic_data_minors%>%
+  mutate(Survived=as.character(Survived)) %>% 
+  # x = Pclass   y = Total
+  ggplot(aes(Pclass,Total,fill=Survived ))+
+  # when graphjng from a summary table use stat = "identity"
+  geom_bar(stat="identity",color="black")+
+  # split graphs by sex
+  facet_grid(.~Sex)+
+  # Custom Colors
+  scale_fill_manual(values=wes_palette("Moonrise2"))+
+  # title of plot
+  ggtitle("Survival Outcomes of Titanic Passengers Under 18 by Sex and Passenger Class")+
+  xlab("Passenger Class") + ylab("Total Passengers") + 
+  # add axis line to graph
+  theme(axis.line = element_line(colour= "black", size = .5, linetype = "solid"),
+        plot.caption = element_text(hjust = 0, size = 7),
+        plot.title = element_text(hjust = 0, size = 10))
+
+
+
+####### EXPORTING #######
+
+
+# establish your file path
+# make sure to use forward slashes /
+
+
+# File path for images
+image.path <-"C:/Users/pbz66348/OneDrive - Commonwealth of Virginia/Documents/Epi Curve Export"
+
+# file path for documents 
+doc.path <- "C:/Users/pbz66348/OneDrive - Commonwealth of Virginia/Documents/Test"
+
+
+# export as xlsx file
+write_xlsx(Titanic_data_update,  # indicate the dataset
+           # indicate the file path, then what you want to name your export
+           file.path(doc.path,"Titanic_updated.xlsx"))  
+
+
+
+#export a plot
+
+Titanic_data_minors%>%
+  mutate(Survived=as.character(Survived)) %>% 
+  # x = Pclass   y = Total
+  ggplot(aes(Pclass,Total,fill=Survived ))+
+  # when graphjng from a summary table use stat = "identity"
+  geom_bar(stat="identity",color="black")+
+  # split graphs by sex
+  facet_grid(.~Sex)+
+  # Custom Colors
+  scale_fill_manual(values=wes_palette("Moonrise2"))+
+  # title of plot
+  ggtitle("Survival Outcomes of Titanic Passengers Under 18 by Sex and Passenger Class")+
+  xlab("Passenger Class") + ylab("Total Passengers") + 
+  # add axis line to graph
+  theme(axis.line = element_line(colour= "black", size = .5, linetype = "solid"),
+        plot.caption = element_text(hjust = 0, size = 7),
+        plot.title = element_text(hjust = 0, size = 10))
+# SAVE PLOT with custom dimensions 
+ggsave(path =image.path,height=5,width=12, filename ="Titanic_Survival_Minors.png")
+
