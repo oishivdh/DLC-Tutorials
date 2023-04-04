@@ -1,0 +1,275 @@
+
+
+
+# import packages that you'll need
+library(tidyverse) # quality of life improvements.  tidyverse has a lot of packages!   
+library(writexl) # export excel documents
+library(readxl) # import excel documents 
+library(lubridate) # date formatting 
+library(wesanderson)  # custom color palettes 
+
+
+
+# understand chains and dplyr syntax
+
+
+# commands used
+
+# mutate() adds new variables that are functions of existing variables
+# group_by() groups data by selected columns
+# summarise() reduces multiple values down to a single summary.
+# paste() chains multiple variables into a single string 
+# print() print the data into the console 
+# cat()  similar to print but allows you to print line breaks 
+
+
+# other useful commands 
+
+# select() picks variables based on their names.
+# filter() picks cases based on their values.
+# arrange() changes the ordering of the rows.
+# separate() splits data by specified character
+
+
+
+
+# %>%  chains commands in the same dataset together  shortcut: shift ctrl m
+
+
+
+# upload a copy of your original dataset
+
+foodborne_data <- read_excel("~/Test/foodborne_data.xlsx")
+
+
+CSHD_COVID_Deidentified <- read_excel("~/Test/COVID_Deidentified_2020.xlsx")
+
+
+
+#### 2x2 Tables: single food column #### 
+
+foodborne_summary<-foodborne_data %>% 
+  # select the columns that you want to stratify
+  # look at the total number of people that were sick/not sick from chicken
+  group_by(Chicken,Ill_or_Well) %>% 
+  summarize(n=n())
+
+print(foodborne_summary)
+
+
+
+# identify data points  use square brackets to indicate [row,column]
+nexp_ill<-foodborne_summary[1,3]
+nexp_well<-foodborne_summary[2,3]
+exp_ill<-foodborne_summary[3,3]
+exp_well<-foodborne_summary[4,3]
+
+  
+# Calculate totals
+total_ill<-exp_ill+nexp_ill
+total_well<-exp_well+nexp_well
+grand_total<-total_ill+total_well
+total_exp<-exp_ill+exp_well
+total_nexp<-nexp_ill+nexp_well
+
+
+# attack rate  = (ill people who a food / total  people who ate a specific food) * 100
+attack_rate_exp<-(exp_ill/total_exp)*100
+attack_rate_nexp<-(nexp_ill/total_nexp)*100
+
+
+# risk difference = Attack rate among persons who ate a specific food / attack rate among persons who did not eat that specific food
+risk_difference<-attack_rate_exp-attack_rate_nexp
+
+# relative risk = Attack rate among persons who ate a specific food / attack rate among persons who did not eat that specific food
+relative_risk<-attack_rate_exp/attack_rate_nexp
+
+# odds ratio =  (exposed cases * nonexposed non cases) / (exposed non cases * unexposed cases)
+odds_ratio<-(exp_ill*nexp_well)/(exp_well*nexp_ill)
+
+# Tie Everything together and print the results in the console
+# print the calculated values separated by line breaks 
+# Cat allows you to print line breaks
+cat(paste(
+  "Attack rate exposed:",attack_rate_exp,"\n",  
+  "Attack rate not exposed:",attack_rate_nexp,"\n",
+  "Risk difference:",risk_difference,"\n",
+  "Relative risk:",relative_risk,"\n",
+  "Odds ratio:", odds_ratio))
+
+
+
+
+
+
+#### 2x2 Tables: Multiple food columns #### 
+
+# Identify the food columns 
+food_col<-c("Chicken","Hamburger","Potato_salad","Green_beans","Ice_cream")
+
+
+# for loops allow you to perform the same commands for different variables in a sequence 
+# commands in the loop should be within a set of {}
+
+
+for (food in food_col){  # start of loop 
+  
+  # print line breaks in the console
+  cat("\n\n")
+  
+  foodborne_summary<-foodborne_data %>% 
+    # Group by a changing variable
+    group_by(foodborne_data[food],Ill_or_Well) %>% 
+    summarize(n=n())
+  
+  print(foodborne_summary)
+  
+  
+  # identify data points  use square brackets to indicate [row,column]
+  nexp_ill<-foodborne_summary[1,3]
+  nexp_well<-foodborne_summary[2,3]
+  exp_ill<-foodborne_summary[3,3]
+  exp_well<-foodborne_summary[4,3]
+  
+  
+  # Calculate totals
+  total_ill<-exp_ill+nexp_ill
+  total_well<-exp_well+nexp_well
+  grand_total<-total_ill+total_well
+  total_exp<-exp_ill+exp_well
+  total_nexp<-nexp_ill+nexp_well
+  
+  
+  # attack rate  = (ill people who a food / total  people who ate a specific food)
+  attack_rate_exp<-(exp_ill/total_exp)*100
+  attack_rate_nexp<-(nexp_ill/total_nexp)*100
+  
+  
+  # risk difference = Attack rate among persons who ate a specific food / attack rate among persons who did not eat that specific food
+  risk_difference<-attack_rate_exp-attack_rate_nexp
+  
+  # relative risk = Attack rate among persons who ate a specific food / attack rate among persons who did not eat that specific food
+  relative_risk<-attack_rate_exp/attack_rate_nexp
+  
+  # odds ratio =  (exposed cases * nonexposed non cases) / (exposed non cases * unexposed cases)
+  odds_ratio<-(exp_ill*nexp_well)/(exp_well*nexp_ill)
+  
+
+  
+  # Tie Everything together and print the results in the console
+  # print the calculated values separated by line breaks  \n  = line break
+  # cat allows you to print line breaks
+  
+  cat(paste(
+    "Attack rate exposed:",attack_rate_exp,"\n",  
+    "Attack rate not exposed:",attack_rate_nexp,"\n",
+    "Risk difference:",risk_difference,"\n",
+    "Relative risk:",relative_risk,"\n",
+    "Odds ratio:", odds_ratio))
+} # end of loop 
+
+
+
+
+#### COVID CASES #### 
+
+
+# create a reset command to reset the dataset.
+# this allows you to revert back to the original dataset if you mess up
+
+
+COVID_data<-CSHD_COVID_Deidentified
+
+
+# look at the total number of probable vs confirmed cases
+
+prob_conf<-COVID_data %>% 
+  # look at the total of each case status
+  group_by(Case.Status) %>% 
+  summarize(Total=n())
+  
+print(prob_conf)
+
+
+#### DATA TABLES #### 
+
+# objective: get a data table of COVID cases by case status over time!
+
+
+# look at case status by time
+prob_conf_time<-COVID_data %>% 
+  group_by(Case.Status,Investigation.Create.Date) %>% 
+  summarize(Total=n())
+
+print(prob_conf_time)  # notice that Investigation.Create.Date is in a date/time format!
+
+
+
+
+# look at case status by just the date
+prob_conf_date<-COVID_data %>% 
+  mutate(Investigation.Create.Date=as.Date(Investigation.Create.Date)) %>%   # edit the investigation create date to only show date and not date/time
+  group_by(Case.Status,Investigation.Create.Date) %>% # stratify by create date and case status
+  summarize(Total=n()) # get a total count 
+
+print(prob_conf_date)
+
+#### EPI CURVE #### 
+
+
+
+
+prob_conf_date %>% 
+  # create a bar chart 
+  # aes: select your x and y axis.  optional: select the variable to fill the bars
+  ggplot(aes(Investigation.Create.Date,Total, fill=Case.Status))+  
+  # when graphing from a summary table use stat = "identity"
+  geom_bar(stat="identity")  
+
+
+
+# is plotting each day hard to read?
+# why do case counts dip at consistent intervals?
+
+
+# plot the same data by MMWR week 
+
+COVID_data %>% 
+  group_by(Week.Ending,Case.Status) %>% # group by MMWR week / week ending 
+  summarize(Total=n()) %>% 
+  ggplot(aes(Week.Ending,Total, fill=Case.Status))+
+  geom_bar(stat="identity")
+
+
+#### Practical Application####
+
+# how many covid cases were between the ages of 18 and 24 ?
+
+College_age<-COVID_data %>% 
+  group_by(Week.Ending,College.Age.Range) %>% 
+  summarize(Total=n())
+
+
+College_age %>% 
+  ggplot(aes(Week.Ending,Total, fill=College.Age.Range))+
+  geom_bar(stat="identity",color="black")+     # COLOR = black adds border to bars 
+  scale_fill_manual(values=wes_palette("GrandBudapest1"))+  # add custom color palette 
+  ggtitle("Total COVID Cases in 2020 by College Age Range") + # add custom title 
+  xlab("MMWR Week") + ylab("Total Cases") + # add custom axis labels 
+  labs(fill="College Age Range")+   # add custom label for fill legend 
+  theme(axis.line = element_line(colour= "black", size = .5, linetype = "solid"),  # add black axis lines
+        plot.title = element_text(hjust = 0, size = 10)) # font size of title 
+
+
+
+# OTHER IDEAS:
+
+# summary table and epi curve of outbreak type
+
+# summary table of ethnicity 
+
+
+
+
+
+
