@@ -1,3 +1,4 @@
+# Objectives: Use tidyverse packages for string manipulation
 
 library(gutenbergr)# dataset of public domain literature
 library(tidytext)
