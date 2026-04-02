@@ -11,12 +11,12 @@
 
 # The code below imports a deidentified disease dataset for the Central 
 # Shenandoah Health District from the Virginia Electronic Disease Surveillance 
-# System (VEDSS) a simulated outbreak line list. 
+# System (VEDSS) and a simulated outbreak line list. 
 
 
 # Learning Objectives:
 #     1. Determine the appropriate type of R join to use in a given situation
-#     2. Join VEDSS and ESSENCE datasets using appropriate R syntax
+#     2. Join VEDSS and line list datasets using appropriate R syntax
 #     3. Create summary statistics based on the joined dataset
 #     4. Create a visualization using ggplot2 to highlight one aspect of the joined data 
 #       
